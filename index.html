@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>TV Keyboard Navigation</title>
+<title>TV Remote Navigation</title>
 
 <style>
   * { box-sizing: border-box; }
@@ -13,6 +13,12 @@
     color: white;
     font-family: Arial, sans-serif;
     overflow: hidden;
+  }
+
+  button {
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .app {
@@ -45,14 +51,13 @@
     font-size: 15px;
   }
 
-  .nav-item:focus {
-    outline: none;
+  .nav-item.focused {
     background: #333;
   }
 
   .content {
     padding: 20px;
-    overflow: auto;
+    overflow: hidden;
   }
 
   .section {
@@ -79,8 +84,7 @@
     font-size: 22px;
   }
 
-  .card:focus {
-    outline: none;
+  .card.focused {
     border-color: red;
     transform: scale(1.04);
   }
@@ -88,47 +92,48 @@
 </head>
 
 <body>
+
 <div class="app">
 
   <aside class="sidebar">
     <div class="logo">▶ YouTube</div>
 
-    <button class="nav-item">Home</button>
-    <button class="nav-item">Shorts</button>
-    <button class="nav-item">Subscriptions</button>
-    <button class="nav-item">History</button>
-    <button class="nav-item">Playlists</button>
-    <button class="nav-item">Downloads</button>
+    <button class="nav-item" data-focusable>Home</button>
+    <button class="nav-item" data-focusable>Shorts</button>
+    <button class="nav-item" data-focusable>Subscriptions</button>
+    <button class="nav-item" data-focusable>History</button>
+    <button class="nav-item" data-focusable>Playlists</button>
+    <button class="nav-item" data-focusable>Downloads</button>
   </aside>
 
   <main class="content">
     <section class="section">
       <h2>System Design</h2>
       <div class="row">
-        <button class="card">Kafka</button>
-        <button class="card">Queues</button>
-        <button class="card">Concurrency</button>
-        <button class="card">Bot Detection</button>
+        <button class="card" data-focusable>Kafka</button>
+        <button class="card" data-focusable>Queues</button>
+        <button class="card" data-focusable>Concurrency</button>
+        <button class="card" data-focusable>Bot Detection</button>
       </div>
     </section>
 
     <section class="section">
       <h2>Low Level Design</h2>
       <div class="row">
-        <button class="card">Locker</button>
-        <button class="card">Connect 4</button>
-        <button class="card">Cache</button>
-        <button class="card">Database</button>
+        <button class="card" data-focusable>Locker</button>
+        <button class="card" data-focusable>Connect 4</button>
+        <button class="card" data-focusable>Cache</button>
+        <button class="card" data-focusable>Database</button>
       </div>
     </section>
 
     <section class="section">
       <h2>Interviews</h2>
       <div class="row">
-        <button class="card">Behavioral</button>
-        <button class="card">Q&A</button>
-        <button class="card">Live</button>
-        <button class="card">Top-K</button>
+        <button class="card" data-focusable>Behavioral</button>
+        <button class="card" data-focusable>Q&A</button>
+        <button class="card" data-focusable>Live</button>
+        <button class="card" data-focusable>Top-K</button>
       </div>
     </section>
   </main>
@@ -139,101 +144,96 @@
   const sidebarItems = [...document.querySelectorAll(".nav-item")];
   const sections = [...document.querySelectorAll(".section")];
 
-  function getCards(sectionIndex) {
-    return [...sections[sectionIndex].querySelectorAll(".card")];
+  let area = "sidebar";
+  let sidebarIndex = 0;
+  let sectionIndex = 0;
+  let cardIndex = 0;
+
+  function getCards(rowIndex) {
+    return [...sections[rowIndex].querySelectorAll(".card")];
+  }
+
+  function clearFocus() {
+    document.querySelectorAll("[data-focusable]").forEach(el => {
+      el.classList.remove("focused");
+      el.blur();
+    });
+  }
+
+  function setFocus(el) {
+    clearFocus();
+    el.classList.add("focused");
+    el.focus();
+    el.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
 
   function focusSidebar(index) {
-    index = Math.max(0, Math.min(index, sidebarItems.length - 1));
-    sidebarItems[index].focus();
+    area = "sidebar";
+    sidebarIndex = Math.max(0, Math.min(index, sidebarItems.length - 1));
+    setFocus(sidebarItems[sidebarIndex]);
   }
 
-  function focusCard(sectionIndex, cardIndex) {
-    sectionIndex = Math.max(0, Math.min(sectionIndex, sections.length - 1));
+  function focusCard(row, col) {
+    area = "content";
+
+    sectionIndex = Math.max(0, Math.min(row, sections.length - 1));
+
     const cards = getCards(sectionIndex);
-    cardIndex = Math.max(0, Math.min(cardIndex, cards.length - 1));
+    cardIndex = Math.max(0, Math.min(col, cards.length - 1));
 
-    cards[cardIndex].focus();
-    cards[cardIndex].scrollIntoView({ block: "nearest", inline: "nearest" });
+    setFocus(cards[cardIndex]);
   }
 
-  function getPosition() {
-    const active = document.activeElement;
+  function getKey(e) {
+    const key = e.key;
+    const code = e.keyCode || e.which;
 
-    const sideIndex = sidebarItems.indexOf(active);
-    if (sideIndex !== -1) {
-      return { area: "sidebar", index: sideIndex };
-    }
+    if (key === "ArrowUp" || code === 38) return "up";
+    if (key === "ArrowDown" || code === 40) return "down";
+    if (key === "ArrowLeft" || code === 37) return "left";
+    if (key === "ArrowRight" || code === 39) return "right";
+    if (key === "Enter" || key === "OK" || code === 13) return "enter";
 
-    for (let s = 0; s < sections.length; s++) {
-      const cards = getCards(s);
-      const c = cards.indexOf(active);
-
-      if (c !== -1) {
-        return { area: "content", section: s, card: c };
-      }
-    }
-
-    return null;
+    return "";
   }
 
-  document.addEventListener("keydown", e => {
-    const pos = getPosition();
+  document.addEventListener("keydown", function(e) {
+    const key = getKey(e);
+    if (!key) return;
 
-    if (!pos) {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        focusSidebar(0);
-      }
-      return;
+    e.preventDefault();
+
+    if (area === "sidebar") {
+      if (key === "down") focusSidebar(sidebarIndex + 1);
+      if (key === "up") focusSidebar(sidebarIndex - 1);
+      if (key === "right") focusCard(0, 0);
+      if (key === "enter") sidebarItems[sidebarIndex].click();
     }
 
-    if (pos.area === "sidebar") {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        focusSidebar(pos.index + 1);
+    else if (area === "content") {
+      if (key === "right") focusCard(sectionIndex, cardIndex + 1);
+
+      if (key === "left") {
+        if (cardIndex === 0) focusSidebar(sidebarIndex);
+        else focusCard(sectionIndex, cardIndex - 1);
       }
 
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        focusSidebar(pos.index - 1);
-      }
-
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        focusCard(0, 0);
-      }
+      if (key === "down") focusCard(sectionIndex + 1, cardIndex);
+      if (key === "up") focusCard(sectionIndex - 1, cardIndex);
+      if (key === "enter") getCards(sectionIndex)[cardIndex].click();
     }
+  });
 
-    if (pos.area === "content") {
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        focusCard(pos.section, pos.card + 1);
-      }
+  document.querySelectorAll("[data-focusable]").forEach(el => {
+    el.setAttribute("tabindex", "-1");
 
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-
-        if (pos.card === 0) {
-          focusSidebar(0);
-        } else {
-          focusCard(pos.section, pos.card - 1);
-        }
-      }
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        focusCard(pos.section + 1, pos.card);
-      }
-
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        focusCard(pos.section - 1, pos.card);
-      }
-    }
+    el.addEventListener("click", function() {
+      alert("Clicked: " + el.textContent.trim());
+    });
   });
 
   focusSidebar(0);
 </script>
+
 </body>
 </html>
