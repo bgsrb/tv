@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>TV Keyboard Navigation</title>
+
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #0f0f0f;
+    color: white;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    height: 100vh;
+  }
+
+  .sidebar {
+    background: #111;
+    padding: 16px;
+    border-right: 1px solid #2a2a2a;
+  }
+
+  .logo {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 24px;
+  }
+
+  .nav-item {
+    width: 100%;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    background: transparent;
+    color: white;
+    border: 0;
+    border-radius: 10px;
+    text-align: left;
+    font-size: 15px;
+  }
+
+  .nav-item:focus {
+    outline: none;
+    background: #333;
+  }
+
+  .content {
+    padding: 20px;
+    overflow: auto;
+  }
+
+  .section {
+    margin-bottom: 34px;
+  }
+
+  .section h2 {
+    margin: 0 0 12px;
+    font-size: 22px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .card {
+    height: 150px;
+    background: #202020;
+    border-radius: 14px;
+    border: 3px solid transparent;
+    color: white;
+    font-size: 22px;
+  }
+
+  .card:focus {
+    outline: none;
+    border-color: red;
+    transform: scale(1.04);
+  }
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="logo">▶ YouTube</div>
+
+    <button class="nav-item">Home</button>
+    <button class="nav-item">Shorts</button>
+    <button class="nav-item">Subscriptions</button>
+    <button class="nav-item">History</button>
+    <button class="nav-item">Playlists</button>
+    <button class="nav-item">Downloads</button>
+  </aside>
+
+  <main class="content">
+    <section class="section">
+      <h2>System Design</h2>
+      <div class="row">
+        <button class="card">Kafka</button>
+        <button class="card">Queues</button>
+        <button class="card">Concurrency</button>
+        <button class="card">Bot Detection</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Low Level Design</h2>
+      <div class="row">
+        <button class="card">Locker</button>
+        <button class="card">Connect 4</button>
+        <button class="card">Cache</button>
+        <button class="card">Database</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Interviews</h2>
+      <div class="row">
+        <button class="card">Behavioral</button>
+        <button class="card">Q&A</button>
+        <button class="card">Live</button>
+        <button class="card">Top-K</button>
+      </div>
+    </section>
+  </main>
+
+</div>
+
+<script>
+  const sidebarItems = [...document.querySelectorAll(".nav-item")];
+  const sections = [...document.querySelectorAll(".section")];
+
+  function getCards(sectionIndex) {
+    return [...sections[sectionIndex].querySelectorAll(".card")];
+  }
+
+  function focusSidebar(index) {
+    index = Math.max(0, Math.min(index, sidebarItems.length - 1));
+    sidebarItems[index].focus();
+  }
+
+  function focusCard(sectionIndex, cardIndex) {
+    sectionIndex = Math.max(0, Math.min(sectionIndex, sections.length - 1));
+    const cards = getCards(sectionIndex);
+    cardIndex = Math.max(0, Math.min(cardIndex, cards.length - 1));
+
+    cards[cardIndex].focus();
+    cards[cardIndex].scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
+  function getPosition() {
+    const active = document.activeElement;
+
+    const sideIndex = sidebarItems.indexOf(active);
+    if (sideIndex !== -1) {
+      return { area: "sidebar", index: sideIndex };
+    }
+
+    for (let s = 0; s < sections.length; s++) {
+      const cards = getCards(s);
+      const c = cards.indexOf(active);
+
+      if (c !== -1) {
+        return { area: "content", section: s, card: c };
+      }
+    }
+
+    return null;
+  }
+
+  document.addEventListener("keydown", e => {
+    const pos = getPosition();
+
+    if (!pos) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        focusSidebar(0);
+      }
+      return;
+    }
+
+    if (pos.area === "sidebar") {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        focusSidebar(pos.index + 1);
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        focusSidebar(pos.index - 1);
+      }
+
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        focusCard(0, 0);
+      }
+    }
+
+    if (pos.area === "content") {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        focusCard(pos.section, pos.card + 1);
+      }
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+
+        if (pos.card === 0) {
+          focusSidebar(0);
+        } else {
+          focusCard(pos.section, pos.card - 1);
+        }
+      }
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        focusCard(pos.section + 1, pos.card);
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        focusCard(pos.section - 1, pos.card);
+      }
+    }
+  });
+
+  focusSidebar(0);
+</script>
+</body>
+</html>
