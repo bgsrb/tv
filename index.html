@@ -2,20 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>YouTube TV MouseMove Remote Navigation</title>
+<title>YouTube TV Navigation</title>
 
 <style>
-* { box-sizing: border-box; }
-
-* {
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
   cursor: none !important;
 }
+
 body {
   margin: 0;
   background: #0f0f0f;
   color: white;
   font-family: Arial, sans-serif;
   overflow: hidden;
+  cursor: none !important;
+}
+
+button {
+  cursor: none !important;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .app {
@@ -33,13 +42,6 @@ body {
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 24px;
-}
-
-.nav-item,
-.card {
-  user-select: none;
-  -webkit-user-select: none;
-  cursor: pointer;
 }
 
 .nav-item {
@@ -146,7 +148,6 @@ const items = [...document.querySelectorAll("[data-focusable]")];
 let current = 0;
 let lastX = null;
 let lastY = null;
-
 let accX = 0;
 let accY = 0;
 
@@ -161,6 +162,7 @@ function setFocus(index) {
   current = Math.max(0, Math.min(index, items.length - 1));
   clearFocus();
   items[current].classList.add("focused");
+  items[current].focus();
   items[current].scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
@@ -175,30 +177,36 @@ function getCenter(el) {
 function move(direction) {
   const active = items[current];
   const activeCenter = getCenter(active);
+  const activeIsSidebar = active.classList.contains("nav-item");
 
-  let candidates = items
+  const candidates = items
     .map((el, index) => {
       const c = getCenter(el);
-      const dx = c.x - activeCenter.x;
-      const dy = c.y - activeCenter.y;
-
-      return { el, index, dx, dy };
+      return {
+        el,
+        index,
+        dx: c.x - activeCenter.x,
+        dy: c.y - activeCenter.y,
+        isSidebar: el.classList.contains("nav-item")
+      };
     })
     .filter(x => {
-      const isSidebar = x.el.classList.contains("nav-item");
-      const activeIsSidebar = active.classList.contains("nav-item");
+      if (direction === "right") {
+        return x.dx > 20 && Math.abs(x.dy) < 120;
+      }
 
-      if (direction === "right") return x.dx > 20 && Math.abs(x.dy) < 120;
-      if (direction === "left") return x.dx < -20 && Math.abs(x.dy) < 120;
+      if (direction === "left") {
+        return x.dx < -20 && Math.abs(x.dy) < 120;
+      }
 
       if (direction === "down") {
-        if (!activeIsSidebar && isSidebar) return false;
-        return x.dy > 20 && Math.abs(x.dx) < 220;
+        if (!activeIsSidebar && x.isSidebar) return false;
+        return x.dy > 20 && Math.abs(x.dx) < 260;
       }
 
       if (direction === "up") {
-        if (!activeIsSidebar && isSidebar) return false;
-        return x.dy < -20 && Math.abs(x.dx) < 220;
+        if (!activeIsSidebar && x.isSidebar) return false;
+        return x.dy < -20 && Math.abs(x.dx) < 260;
       }
     })
     .sort((a, b) => {
@@ -213,16 +221,8 @@ function move(direction) {
     setFocus(candidates[0].index);
   }
 }
-document.addEventListener("mousemove", e => {
-  if (lastX === null) {
-    lastX = e.clientX;
-    lastY = e.clientY;
-    return;
-  }
 
-  const dx = e.clientX - lastX;
-  const dy = e.clientY - lastY;
-
+function handleRemoteMove(dx, dy) {
   accX += dx;
   accY += dy;
 
@@ -241,21 +241,71 @@ document.addEventListener("mousemove", e => {
     accX = 0;
     accY = 0;
   }
+}
+
+document.addEventListener("mousemove", e => {
+  if (lastX === null) {
+    lastX = e.clientX;
+    lastY = e.clientY;
+    return;
+  }
+
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+
+  handleRemoteMove(dx, dy);
 
   lastX = e.clientX;
   lastY = e.clientY;
 });
 
-document.addEventListener("click", () => {
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") {
+    e.preventDefault();
+    handleRemoteMove(12, 0);
+  }
+
+  if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    handleRemoteMove(-12, 0);
+  }
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    handleRemoteMove(0, 8);
+  }
+
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    handleRemoteMove(0, -8);
+  }
+
+  if (e.key === "Enter") {
+    e.preventDefault();
+    items[current].click();
+  }
+});
+
+document.addEventListener("click", e => {
+  e.preventDefault();
   items[current].click();
 });
 
 items.forEach(el => {
   el.setAttribute("tabindex", "-1");
 
-  el.addEventListener("click", () => {
+  el.addEventListener("click", e => {
+    e.stopPropagation();
     alert("Clicked: " + el.textContent.trim());
   });
+});
+
+document.addEventListener("mousedown", () => {
+  document.body.style.cursor = "none";
+});
+
+document.addEventListener("mouseup", () => {
+  document.body.style.cursor = "none";
 });
 
 setFocus(0);
