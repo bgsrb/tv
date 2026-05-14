@@ -1,139 +1,251 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>TV Remote Debug</title>
+<title>YouTube TV MouseMove Remote Navigation</title>
 
 <style>
-  body {
-    margin: 0;
-    background: #111;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    padding: 20px;
-  }
+* { box-sizing: border-box; }
 
-  .box {
-    background: #222;
-    border: 2px solid #444;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 16px;
-  }
+body {
+  margin: 0;
+  background: #0f0f0f;
+  color: white;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
 
-  #last {
-    font-size: 28px;
-    color: #00ff99;
-  }
+.app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  height: 100vh;
+}
 
-  #log {
-    height: 500px;
-    overflow: auto;
-    background: #000;
-    padding: 12px;
-    border-radius: 10px;
-    font-size: 16px;
-    direction: ltr;
-  }
+.sidebar {
+  background: #111;
+  padding: 16px;
+}
 
-  .test-btn {
-    padding: 20px;
-    margin: 10px;
-    font-size: 20px;
-  }
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 24px;
+}
+
+.nav-item,
+.card {
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+}
+
+.nav-item {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 8px;
+  background: transparent;
+  color: white;
+  border: 0;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 15px;
+}
+
+.nav-item.focused {
+  background: #333;
+}
+
+.content {
+  padding: 20px;
+  overflow: hidden;
+}
+
+.section {
+  margin-bottom: 34px;
+}
+
+.section h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.card {
+  height: 150px;
+  background: #202020;
+  border-radius: 14px;
+  border: 3px solid transparent;
+  color: white;
+  font-size: 22px;
+}
+
+.card.focused {
+  border-color: red;
+  transform: scale(1.04);
+}
 </style>
 </head>
 
 <body>
 
-<div class="box">
-  <h1>TV Remote Event Debug</h1>
-  <div id="last">Waiting...</div>
-</div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">▶ YouTube</div>
+    <button class="nav-item" data-focusable>Home</button>
+    <button class="nav-item" data-focusable>Shorts</button>
+    <button class="nav-item" data-focusable>Subscriptions</button>
+    <button class="nav-item" data-focusable>History</button>
+    <button class="nav-item" data-focusable>Playlists</button>
+    <button class="nav-item" data-focusable>Downloads</button>
+  </aside>
 
-<div class="box">
-  <button class="test-btn">Button 1</button>
-  <button class="test-btn">Button 2</button>
-  <button class="test-btn">Button 3</button>
-</div>
+  <main class="content">
+    <section class="section">
+      <h2>System Design</h2>
+      <div class="row">
+        <button class="card" data-focusable>Kafka</button>
+        <button class="card" data-focusable>Queues</button>
+        <button class="card" data-focusable>Concurrency</button>
+        <button class="card" data-focusable>Bot Detection</button>
+      </div>
+    </section>
 
-<div id="log"></div>
+    <section class="section">
+      <h2>Low Level Design</h2>
+      <div class="row">
+        <button class="card" data-focusable>Locker</button>
+        <button class="card" data-focusable>Connect 4</button>
+        <button class="card" data-focusable>Cache</button>
+        <button class="card" data-focusable>Database</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Interviews</h2>
+      <div class="row">
+        <button class="card" data-focusable>Behavioral</button>
+        <button class="card" data-focusable>Q&A</button>
+        <button class="card" data-focusable>Live</button>
+        <button class="card" data-focusable>Top-K</button>
+      </div>
+    </section>
+  </main>
+</div>
 
 <script>
-const last = document.getElementById("last");
-const log = document.getElementById("log");
+const items = [...document.querySelectorAll("[data-focusable]")];
 
-function addLog(text) {
-  const time = new Date().toLocaleTimeString();
-  const line = document.createElement("div");
-  line.textContent = "[" + time + "] " + text;
-  log.prepend(line);
-  last.textContent = text;
+let current = 0;
+let lastX = null;
+let lastY = null;
+
+let accX = 0;
+let accY = 0;
+
+const THRESHOLD_X = 10;
+const THRESHOLD_Y = 7;
+
+function clearFocus() {
+  items.forEach(el => el.classList.remove("focused"));
 }
 
-function keyName(e) {
-  return `
-KEYBOARD:
-key=${e.key}
-code=${e.code}
-keyCode=${e.keyCode}
-which=${e.which}
-repeat=${e.repeat}
-`;
+function setFocus(index) {
+  current = Math.max(0, Math.min(index, items.length - 1));
+  clearFocus();
+  items[current].classList.add("focused");
+  items[current].scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
-function mouseName(e) {
-  return `
-MOUSE:
-type=${e.type}
-x=${e.clientX}
-y=${e.clientY}
-button=${e.button}
-buttons=${e.buttons}
-movementX=${e.movementX}
-movementY=${e.movementY}
-`;
+function getCenter(el) {
+  const r = el.getBoundingClientRect();
+  return {
+    x: r.left + r.width / 2,
+    y: r.top + r.height / 2
+  };
 }
 
-document.addEventListener("keydown", e => {
-  addLog(keyName(e));
-});
+function move(direction) {
+  const active = items[current];
+  const activeCenter = getCenter(active);
 
-document.addEventListener("keyup", e => {
-  addLog("KEY UP: key=" + e.key + " code=" + e.code + " keyCode=" + e.keyCode);
-});
+  let candidates = items
+    .map((el, index) => {
+      const c = getCenter(el);
+      const dx = c.x - activeCenter.x;
+      const dy = c.y - activeCenter.y;
+
+      return { el, index, dx, dy };
+    })
+    .filter(x => {
+      if (direction === "right") return x.dx > 20;
+      if (direction === "left") return x.dx < -20;
+      if (direction === "down") return x.dy > 20;
+      if (direction === "up") return x.dy < -20;
+    })
+    .sort((a, b) => {
+      if (direction === "right" || direction === "left") {
+        return Math.abs(a.dx) - Math.abs(b.dx) || Math.abs(a.dy) - Math.abs(b.dy);
+      }
+
+      return Math.abs(a.dy) - Math.abs(b.dy) || Math.abs(a.dx) - Math.abs(b.dx);
+    });
+
+  if (candidates.length) {
+    setFocus(candidates[0].index);
+  }
+}
 
 document.addEventListener("mousemove", e => {
-  addLog(mouseName(e));
+  if (lastX === null) {
+    lastX = e.clientX;
+    lastY = e.clientY;
+    return;
+  }
+
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+
+  accX += dx;
+  accY += dy;
+
+  if (Math.abs(accX) >= THRESHOLD_X && Math.abs(accX) > Math.abs(accY)) {
+    if (accX > 0) move("right");
+    else move("left");
+
+    accX = 0;
+    accY = 0;
+  }
+
+  if (Math.abs(accY) >= THRESHOLD_Y && Math.abs(accY) > Math.abs(accX)) {
+    if (accY > 0) move("down");
+    else move("up");
+
+    accX = 0;
+    accY = 0;
+  }
+
+  lastX = e.clientX;
+  lastY = e.clientY;
 });
 
-document.addEventListener("mousedown", e => {
-  addLog(mouseName(e));
+document.addEventListener("click", () => {
+  items[current].click();
 });
 
-document.addEventListener("mouseup", e => {
-  addLog(mouseName(e));
+items.forEach(el => {
+  el.setAttribute("tabindex", "-1");
+
+  el.addEventListener("click", () => {
+    alert("Clicked: " + el.textContent.trim());
+  });
 });
 
-document.addEventListener("click", e => {
-  addLog("CLICK: target=" + e.target.tagName + " text=" + e.target.textContent.trim());
-});
-
-document.addEventListener("wheel", e => {
-  addLog("WHEEL: deltaX=" + e.deltaX + " deltaY=" + e.deltaY);
-});
-
-document.addEventListener("touchstart", e => {
-  addLog("TOUCH START: touches=" + e.touches.length);
-});
-
-document.addEventListener("touchmove", e => {
-  addLog("TOUCH MOVE: touches=" + e.touches.length);
-});
-
-document.addEventListener("touchend", e => {
-  addLog("TOUCH END");
-});
+setFocus(0);
 </script>
 
 </body>
