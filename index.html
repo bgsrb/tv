@@ -182,13 +182,24 @@ function move(direction) {
       return { el, index, dx, dy };
     })
     .filter(x => {
-      if (direction === "right") return x.dx > 20;
-      if (direction === "left") return x.dx < -20;
-      if (direction === "down") return x.dy > 20;
-      if (direction === "up") return x.dy < -20;
+      const isSidebar = x.el.classList.contains("nav-item");
+      const activeIsSidebar = active.classList.contains("nav-item");
+
+      if (direction === "right") return x.dx > 20 && Math.abs(x.dy) < 120;
+      if (direction === "left") return x.dx < -20 && Math.abs(x.dy) < 120;
+
+      if (direction === "down") {
+        if (!activeIsSidebar && isSidebar) return false;
+        return x.dy > 20 && Math.abs(x.dx) < 220;
+      }
+
+      if (direction === "up") {
+        if (!activeIsSidebar && isSidebar) return false;
+        return x.dy < -20 && Math.abs(x.dx) < 220;
+      }
     })
     .sort((a, b) => {
-      if (direction === "right" || direction === "left") {
+      if (direction === "left" || direction === "right") {
         return Math.abs(a.dx) - Math.abs(b.dx) || Math.abs(a.dy) - Math.abs(b.dy);
       }
 
@@ -199,7 +210,6 @@ function move(direction) {
     setFocus(candidates[0].index);
   }
 }
-
 document.addEventListener("mousemove", e => {
   if (lastX === null) {
     lastX = e.clientX;
