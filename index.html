@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>TV Remote Navigation</title>
+<title>TV Remote Mouse + Keyboard Navigation</title>
 
 <style>
   * { box-sizing: border-box; }
@@ -51,7 +51,8 @@
     font-size: 15px;
   }
 
-  .nav-item.focused {
+  .nav-item.focused,
+  .nav-item:hover {
     background: #333;
   }
 
@@ -84,7 +85,8 @@
     font-size: 22px;
   }
 
-  .card.focused {
+  .card.focused,
+  .card:hover {
     border-color: red;
     transform: scale(1.04);
   }
@@ -143,6 +145,7 @@
 <script>
   const sidebarItems = [...document.querySelectorAll(".nav-item")];
   const sections = [...document.querySelectorAll(".section")];
+  const focusables = [...document.querySelectorAll("[data-focusable]")];
 
   let area = "sidebar";
   let sidebarIndex = 0;
@@ -154,7 +157,7 @@
   }
 
   function clearFocus() {
-    document.querySelectorAll("[data-focusable]").forEach(el => {
+    focusables.forEach(el => {
       el.classList.remove("focused");
       el.blur();
     });
@@ -164,35 +167,48 @@
     clearFocus();
     el.classList.add("focused");
     el.focus();
-    el.scrollIntoView({ block: "nearest", inline: "nearest" });
+
+    const sideIndex = sidebarItems.indexOf(el);
+    if (sideIndex !== -1) {
+      area = "sidebar";
+      sidebarIndex = sideIndex;
+      return;
+    }
+
+    for (let s = 0; s < sections.length; s++) {
+      const cards = getCards(s);
+      const c = cards.indexOf(el);
+
+      if (c !== -1) {
+        area = "content";
+        sectionIndex = s;
+        cardIndex = c;
+        el.scrollIntoView({ block: "nearest", inline: "nearest" });
+        return;
+      }
+    }
   }
 
   function focusSidebar(index) {
-    area = "sidebar";
-    sidebarIndex = Math.max(0, Math.min(index, sidebarItems.length - 1));
-    setFocus(sidebarItems[sidebarIndex]);
+    index = Math.max(0, Math.min(index, sidebarItems.length - 1));
+    setFocus(sidebarItems[index]);
   }
 
   function focusCard(row, col) {
-    area = "content";
-
-    sectionIndex = Math.max(0, Math.min(row, sections.length - 1));
-
-    const cards = getCards(sectionIndex);
-    cardIndex = Math.max(0, Math.min(col, cards.length - 1));
-
-    setFocus(cards[cardIndex]);
+    row = Math.max(0, Math.min(row, sections.length - 1));
+    const cards = getCards(row);
+    col = Math.max(0, Math.min(col, cards.length - 1));
+    setFocus(cards[col]);
   }
 
   function getKey(e) {
-    const key = e.key;
     const code = e.keyCode || e.which;
 
-    if (key === "ArrowUp" || code === 38) return "up";
-    if (key === "ArrowDown" || code === 40) return "down";
-    if (key === "ArrowLeft" || code === 37) return "left";
-    if (key === "ArrowRight" || code === 39) return "right";
-    if (key === "Enter" || key === "OK" || code === 13) return "enter";
+    if (e.key === "ArrowUp" || code === 38) return "up";
+    if (e.key === "ArrowDown" || code === 40) return "down";
+    if (e.key === "ArrowLeft" || code === 37) return "left";
+    if (e.key === "ArrowRight" || code === 39) return "right";
+    if (e.key === "Enter" || e.key === "OK" || code === 13) return "enter";
 
     return "";
   }
@@ -224,12 +240,28 @@
     }
   });
 
-  document.querySelectorAll("[data-focusable]").forEach(el => {
+  focusables.forEach(el => {
     el.setAttribute("tabindex", "-1");
 
-    el.addEventListener("click", function() {
+    el.addEventListener("mouseenter", () => {
+      setFocus(el);
+    });
+
+    el.addEventListener("mousemove", () => {
+      setFocus(el);
+    });
+
+    el.addEventListener("click", () => {
       alert("Clicked: " + el.textContent.trim());
     });
+  });
+
+  document.addEventListener("mousemove", e => {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+
+    if (el && el.matches("[data-focusable]")) {
+      setFocus(el);
+    }
   });
 
   focusSidebar(0);
