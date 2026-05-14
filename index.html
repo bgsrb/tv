@@ -1,270 +1,139 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8" />
-<title>TV Remote Mouse + Keyboard Navigation</title>
+<title>TV Remote Debug</title>
 
 <style>
-  * { box-sizing: border-box; }
-
   body {
     margin: 0;
-    background: #0f0f0f;
-    color: white;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-  }
-
-  button {
-    cursor: pointer;
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
-  .app {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    height: 100vh;
-  }
-
-  .sidebar {
     background: #111;
-    padding: 16px;
-    border-right: 1px solid #2a2a2a;
-  }
-
-  .logo {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 24px;
-  }
-
-  .nav-item {
-    width: 100%;
-    padding: 14px 16px;
-    margin-bottom: 8px;
-    background: transparent;
-    color: white;
-    border: 0;
-    border-radius: 10px;
-    text-align: left;
-    font-size: 15px;
-  }
-
-  .nav-item.focused,
-  .nav-item:hover {
-    background: #333;
-  }
-
-  .content {
+    color: #fff;
+    font-family: Arial, sans-serif;
     padding: 20px;
-    overflow: hidden;
   }
 
-  .section {
-    margin-bottom: 34px;
+  .box {
+    background: #222;
+    border: 2px solid #444;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
   }
 
-  .section h2 {
-    margin: 0 0 12px;
-    font-size: 22px;
+  #last {
+    font-size: 28px;
+    color: #00ff99;
   }
 
-  .row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+  #log {
+    height: 500px;
+    overflow: auto;
+    background: #000;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 16px;
+    direction: ltr;
   }
 
-  .card {
-    height: 150px;
-    background: #202020;
-    border-radius: 14px;
-    border: 3px solid transparent;
-    color: white;
-    font-size: 22px;
-  }
-
-  .card.focused,
-  .card:hover {
-    border-color: red;
-    transform: scale(1.04);
+  .test-btn {
+    padding: 20px;
+    margin: 10px;
+    font-size: 20px;
   }
 </style>
 </head>
 
 <body>
 
-<div class="app">
-
-  <aside class="sidebar">
-    <div class="logo">▶ YouTube</div>
-
-    <button class="nav-item" data-focusable>Home</button>
-    <button class="nav-item" data-focusable>Shorts</button>
-    <button class="nav-item" data-focusable>Subscriptions</button>
-    <button class="nav-item" data-focusable>History</button>
-    <button class="nav-item" data-focusable>Playlists</button>
-    <button class="nav-item" data-focusable>Downloads</button>
-  </aside>
-
-  <main class="content">
-    <section class="section">
-      <h2>System Design</h2>
-      <div class="row">
-        <button class="card" data-focusable>Kafka</button>
-        <button class="card" data-focusable>Queues</button>
-        <button class="card" data-focusable>Concurrency</button>
-        <button class="card" data-focusable>Bot Detection</button>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>Low Level Design</h2>
-      <div class="row">
-        <button class="card" data-focusable>Locker</button>
-        <button class="card" data-focusable>Connect 4</button>
-        <button class="card" data-focusable>Cache</button>
-        <button class="card" data-focusable>Database</button>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>Interviews</h2>
-      <div class="row">
-        <button class="card" data-focusable>Behavioral</button>
-        <button class="card" data-focusable>Q&A</button>
-        <button class="card" data-focusable>Live</button>
-        <button class="card" data-focusable>Top-K</button>
-      </div>
-    </section>
-  </main>
-
+<div class="box">
+  <h1>TV Remote Event Debug</h1>
+  <div id="last">Waiting...</div>
 </div>
 
+<div class="box">
+  <button class="test-btn">Button 1</button>
+  <button class="test-btn">Button 2</button>
+  <button class="test-btn">Button 3</button>
+</div>
+
+<div id="log"></div>
+
 <script>
-  const sidebarItems = [...document.querySelectorAll(".nav-item")];
-  const sections = [...document.querySelectorAll(".section")];
-  const focusables = [...document.querySelectorAll("[data-focusable]")];
+const last = document.getElementById("last");
+const log = document.getElementById("log");
 
-  let area = "sidebar";
-  let sidebarIndex = 0;
-  let sectionIndex = 0;
-  let cardIndex = 0;
+function addLog(text) {
+  const time = new Date().toLocaleTimeString();
+  const line = document.createElement("div");
+  line.textContent = "[" + time + "] " + text;
+  log.prepend(line);
+  last.textContent = text;
+}
 
-  function getCards(rowIndex) {
-    return [...sections[rowIndex].querySelectorAll(".card")];
-  }
+function keyName(e) {
+  return `
+KEYBOARD:
+key=${e.key}
+code=${e.code}
+keyCode=${e.keyCode}
+which=${e.which}
+repeat=${e.repeat}
+`;
+}
 
-  function clearFocus() {
-    focusables.forEach(el => {
-      el.classList.remove("focused");
-      el.blur();
-    });
-  }
+function mouseName(e) {
+  return `
+MOUSE:
+type=${e.type}
+x=${e.clientX}
+y=${e.clientY}
+button=${e.button}
+buttons=${e.buttons}
+movementX=${e.movementX}
+movementY=${e.movementY}
+`;
+}
 
-  function setFocus(el) {
-    clearFocus();
-    el.classList.add("focused");
-    el.focus();
+document.addEventListener("keydown", e => {
+  addLog(keyName(e));
+});
 
-    const sideIndex = sidebarItems.indexOf(el);
-    if (sideIndex !== -1) {
-      area = "sidebar";
-      sidebarIndex = sideIndex;
-      return;
-    }
+document.addEventListener("keyup", e => {
+  addLog("KEY UP: key=" + e.key + " code=" + e.code + " keyCode=" + e.keyCode);
+});
 
-    for (let s = 0; s < sections.length; s++) {
-      const cards = getCards(s);
-      const c = cards.indexOf(el);
+document.addEventListener("mousemove", e => {
+  addLog(mouseName(e));
+});
 
-      if (c !== -1) {
-        area = "content";
-        sectionIndex = s;
-        cardIndex = c;
-        el.scrollIntoView({ block: "nearest", inline: "nearest" });
-        return;
-      }
-    }
-  }
+document.addEventListener("mousedown", e => {
+  addLog(mouseName(e));
+});
 
-  function focusSidebar(index) {
-    index = Math.max(0, Math.min(index, sidebarItems.length - 1));
-    setFocus(sidebarItems[index]);
-  }
+document.addEventListener("mouseup", e => {
+  addLog(mouseName(e));
+});
 
-  function focusCard(row, col) {
-    row = Math.max(0, Math.min(row, sections.length - 1));
-    const cards = getCards(row);
-    col = Math.max(0, Math.min(col, cards.length - 1));
-    setFocus(cards[col]);
-  }
+document.addEventListener("click", e => {
+  addLog("CLICK: target=" + e.target.tagName + " text=" + e.target.textContent.trim());
+});
 
-  function getKey(e) {
-    const code = e.keyCode || e.which;
+document.addEventListener("wheel", e => {
+  addLog("WHEEL: deltaX=" + e.deltaX + " deltaY=" + e.deltaY);
+});
 
-    if (e.key === "ArrowUp" || code === 38) return "up";
-    if (e.key === "ArrowDown" || code === 40) return "down";
-    if (e.key === "ArrowLeft" || code === 37) return "left";
-    if (e.key === "ArrowRight" || code === 39) return "right";
-    if (e.key === "Enter" || e.key === "OK" || code === 13) return "enter";
+document.addEventListener("touchstart", e => {
+  addLog("TOUCH START: touches=" + e.touches.length);
+});
 
-    return "";
-  }
+document.addEventListener("touchmove", e => {
+  addLog("TOUCH MOVE: touches=" + e.touches.length);
+});
 
-  document.addEventListener("keydown", function(e) {
-    const key = getKey(e);
-    if (!key) return;
-
-    e.preventDefault();
-
-    if (area === "sidebar") {
-      if (key === "down") focusSidebar(sidebarIndex + 1);
-      if (key === "up") focusSidebar(sidebarIndex - 1);
-      if (key === "right") focusCard(0, 0);
-      if (key === "enter") sidebarItems[sidebarIndex].click();
-    }
-
-    else if (area === "content") {
-      if (key === "right") focusCard(sectionIndex, cardIndex + 1);
-
-      if (key === "left") {
-        if (cardIndex === 0) focusSidebar(sidebarIndex);
-        else focusCard(sectionIndex, cardIndex - 1);
-      }
-
-      if (key === "down") focusCard(sectionIndex + 1, cardIndex);
-      if (key === "up") focusCard(sectionIndex - 1, cardIndex);
-      if (key === "enter") getCards(sectionIndex)[cardIndex].click();
-    }
-  });
-
-  focusables.forEach(el => {
-    el.setAttribute("tabindex", "-1");
-
-    el.addEventListener("mouseenter", () => {
-      setFocus(el);
-    });
-
-    el.addEventListener("mousemove", () => {
-      setFocus(el);
-    });
-
-    el.addEventListener("click", () => {
-      alert("Clicked: " + el.textContent.trim());
-    });
-  });
-
-  document.addEventListener("mousemove", e => {
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-
-    if (el && el.matches("[data-focusable]")) {
-      setFocus(el);
-    }
-  });
-
-  focusSidebar(0);
+document.addEventListener("touchend", e => {
+  addLog("TOUCH END");
+});
 </script>
 
 </body>
