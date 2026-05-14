@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>YouTube TV Navigation</title>
+<title>TV Spatial Navigation</title>
+
+<script src="https://cdn.jsdelivr.net/npm/js-spatial-navigation/spatial_navigation.js"></script>
 
 <style>
 *,
@@ -18,7 +20,6 @@ body {
   color: white;
   font-family: Arial, sans-serif;
   overflow: hidden;
-  cursor: none !important;
 }
 
 button {
@@ -40,11 +41,11 @@ button {
 
 .logo {
   font-size: 24px;
-  font-weight: bold;
   margin-bottom: 24px;
 }
 
 .nav-item {
+  display: block;
   width: 100%;
   padding: 14px;
   margin-bottom: 8px;
@@ -53,15 +54,15 @@ button {
   border: 0;
   border-radius: 10px;
   text-align: left;
-  font-size: 15px;
+  font-size: 16px;
 }
 
-.nav-item.focused {
+.nav-item:focus {
   background: #333;
 }
 
 .content {
-  padding: 20px;
+  padding: 24px;
   overflow: hidden;
 }
 
@@ -69,8 +70,8 @@ button {
   margin-bottom: 34px;
 }
 
-.section h2 {
-  margin: 0 0 12px;
+.section-title {
+  margin: 0 0 14px;
   font-size: 22px;
 }
 
@@ -83,13 +84,13 @@ button {
 .card {
   height: 150px;
   background: #202020;
+  color: white;
   border-radius: 14px;
   border: 3px solid transparent;
-  color: white;
   font-size: 22px;
 }
 
-.card.focused {
+.card:focus {
   border-color: red;
   transform: scale(1.04);
 }
@@ -101,51 +102,57 @@ button {
 <div class="app">
   <aside class="sidebar">
     <div class="logo">▶ YouTube</div>
-    <button class="nav-item" data-focusable>Home</button>
-    <button class="nav-item" data-focusable>Shorts</button>
-    <button class="nav-item" data-focusable>Subscriptions</button>
-    <button class="nav-item" data-focusable>History</button>
-    <button class="nav-item" data-focusable>Playlists</button>
-    <button class="nav-item" data-focusable>Downloads</button>
+    <button class="nav-item focusable">Home</button>
+    <button class="nav-item focusable">Explore</button>
+    <button class="nav-item focusable">Subscriptions</button>
+    <button class="nav-item focusable">Library</button>
   </aside>
 
   <main class="content">
+
     <section class="section">
-      <h2>System Design</h2>
+      <h2 class="section-title">System Design</h2>
       <div class="row">
-        <button class="card" data-focusable>Kafka</button>
-        <button class="card" data-focusable>Queues</button>
-        <button class="card" data-focusable>Concurrency</button>
-        <button class="card" data-focusable>Bot Detection</button>
+        <button class="card focusable">Kafka</button>
+        <button class="card focusable">Queues</button>
+        <button class="card focusable">Concurrency</button>
+        <button class="card focusable">Bot Detection</button>
       </div>
     </section>
 
     <section class="section">
-      <h2>Low Level Design</h2>
+      <h2 class="section-title">Low Level Design</h2>
       <div class="row">
-        <button class="card" data-focusable>Locker</button>
-        <button class="card" data-focusable>Connect 4</button>
-        <button class="card" data-focusable>Cache</button>
-        <button class="card" data-focusable>Database</button>
+        <button class="card focusable">Locker</button>
+        <button class="card focusable">Connect 4</button>
+        <button class="card focusable">Cache</button>
+        <button class="card focusable">Database</button>
       </div>
     </section>
 
     <section class="section">
-      <h2>Interviews</h2>
+      <h2 class="section-title">Interviews</h2>
       <div class="row">
-        <button class="card" data-focusable>Behavioral</button>
-        <button class="card" data-focusable>Q&A</button>
-        <button class="card" data-focusable>Live</button>
-        <button class="card" data-focusable>Top-K</button>
+        <button class="card focusable">Behavioral</button>
+        <button class="card focusable">Q&A</button>
+        <button class="card focusable">Live Coding</button>
+        <button class="card focusable">Top-K</button>
       </div>
     </section>
+
   </main>
 </div>
 
 <script>
-const items = [...document.querySelectorAll("[data-focusable]")];
+SpatialNavigation.init();
 
-let current = 0;
+SpatialNavigation.add({
+  selector: ".focusable"
+});
+
+SpatialNavigation.makeFocusable();
+SpatialNavigation.focus();
+
 let lastX = null;
 let lastY = null;
 let accX = 0;
@@ -154,93 +161,8 @@ let accY = 0;
 const THRESHOLD_X = 10;
 const THRESHOLD_Y = 7;
 
-function clearFocus() {
-  items.forEach(el => el.classList.remove("focused"));
-}
-
-function setFocus(index) {
-  current = Math.max(0, Math.min(index, items.length - 1));
-  clearFocus();
-  items[current].classList.add("focused");
-  items[current].focus();
-  items[current].scrollIntoView({ block: "nearest", inline: "nearest" });
-}
-
-function getCenter(el) {
-  const r = el.getBoundingClientRect();
-  return {
-    x: r.left + r.width / 2,
-    y: r.top + r.height / 2
-  };
-}
-
-function move(direction) {
-  const active = items[current];
-  const activeCenter = getCenter(active);
-  const activeIsSidebar = active.classList.contains("nav-item");
-
-  const candidates = items
-    .map((el, index) => {
-      const c = getCenter(el);
-      return {
-        el,
-        index,
-        dx: c.x - activeCenter.x,
-        dy: c.y - activeCenter.y,
-        isSidebar: el.classList.contains("nav-item")
-      };
-    })
-    .filter(x => {
-      if (direction === "right") {
-        return x.dx > 20 && Math.abs(x.dy) < 120;
-      }
-
-      if (direction === "left") {
-        return x.dx < -20 && Math.abs(x.dy) < 120;
-      }
-
-      if (direction === "down") {
-        if (!activeIsSidebar && x.isSidebar) return false;
-        return x.dy > 20 && Math.abs(x.dx) < 260;
-      }
-
-      if (direction === "up") {
-        if (!activeIsSidebar && x.isSidebar) return false;
-        return x.dy < -20 && Math.abs(x.dx) < 260;
-      }
-    })
-    .sort((a, b) => {
-      if (direction === "left" || direction === "right") {
-        return Math.abs(a.dx) - Math.abs(b.dx) || Math.abs(a.dy) - Math.abs(b.dy);
-      }
-
-      return Math.abs(a.dy) - Math.abs(b.dy) || Math.abs(a.dx) - Math.abs(b.dx);
-    });
-
-  if (candidates.length) {
-    setFocus(candidates[0].index);
-  }
-}
-
-function handleRemoteMove(dx, dy) {
-  accX += dx;
-  accY += dy;
-
-  if (Math.abs(accX) >= THRESHOLD_X && Math.abs(accX) > Math.abs(accY)) {
-    if (accX > 0) move("right");
-    else move("left");
-
-    accX = 0;
-    accY = 0;
-  }
-
-  if (Math.abs(accY) >= THRESHOLD_Y && Math.abs(accY) > Math.abs(accX)) {
-    if (accY > 0) move("down");
-    else move("up");
-
-    accX = 0;
-    accY = 0;
-  }
+function remoteMove(dir) {
+  SpatialNavigation.move(dir);
 }
 
 document.addEventListener("mousemove", e => {
@@ -253,62 +175,36 @@ document.addEventListener("mousemove", e => {
   const dx = e.clientX - lastX;
   const dy = e.clientY - lastY;
 
-  handleRemoteMove(dx, dy);
+  accX += dx;
+  accY += dy;
+
+  if (Math.abs(accX) > THRESHOLD_X && Math.abs(accX) > Math.abs(accY)) {
+    remoteMove(accX > 0 ? "right" : "left");
+    accX = 0;
+    accY = 0;
+  }
+
+  if (Math.abs(accY) > THRESHOLD_Y && Math.abs(accY) > Math.abs(accX)) {
+    remoteMove(accY > 0 ? "down" : "up");
+    accX = 0;
+    accY = 0;
+  }
 
   lastX = e.clientX;
   lastY = e.clientY;
 });
 
 document.addEventListener("keydown", e => {
-  if (e.key === "ArrowRight") {
-    e.preventDefault();
-    handleRemoteMove(12, 0);
-  }
-
-  if (e.key === "ArrowLeft") {
-    e.preventDefault();
-    handleRemoteMove(-12, 0);
-  }
-
-  if (e.key === "ArrowDown") {
-    e.preventDefault();
-    handleRemoteMove(0, 8);
-  }
-
-  if (e.key === "ArrowUp") {
-    e.preventDefault();
-    handleRemoteMove(0, -8);
-  }
-
-  if (e.key === "Enter") {
-    e.preventDefault();
-    items[current].click();
-  }
+  if (e.key === "ArrowRight") remoteMove("right");
+  if (e.key === "ArrowLeft") remoteMove("left");
+  if (e.key === "ArrowDown") remoteMove("down");
+  if (e.key === "ArrowUp") remoteMove("up");
 });
 
-document.addEventListener("click", e => {
-  e.preventDefault();
-  items[current].click();
+document.addEventListener("click", () => {
+  const el = document.activeElement;
+  if (el) el.classList.add("selected");
 });
-
-items.forEach(el => {
-  el.setAttribute("tabindex", "-1");
-
-  el.addEventListener("click", e => {
-    e.stopPropagation();
-    alert("Clicked: " + el.textContent.trim());
-  });
-});
-
-document.addEventListener("mousedown", () => {
-  document.body.style.cursor = "none";
-});
-
-document.addEventListener("mouseup", () => {
-  document.body.style.cursor = "none";
-});
-
-setFocus(0);
 </script>
 
 </body>
